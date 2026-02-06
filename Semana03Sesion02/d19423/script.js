@@ -116,3 +116,7 @@ do {
         bandera = false;
    } 
 } while (bandera);
+
+document.getElementById("btninicio").addEventListener("click", function(event){
+    console.log("Diste click en el boton")
+}
