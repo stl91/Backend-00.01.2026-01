@@ -99,24 +99,20 @@ let bandera = true;
 let inicio = 190;
 
 while (bandera) {
-   console.log(`Este es el numero actual: ${inicio}`);
-   inicio++;
-   if(inicio===200){
+    console.log(`Este es el numero actual: ${inicio}`);
+    inicio++;
+    if (inicio === 200) {
         bandera = false;
-   } 
+    }
 }
 
-inicio  = 0
+inicio = 0
 bandera = true;
 
 do {
-   console.log(`Este es el numero actual: ${inicio}`);
-   inicio++;
-   if(inicio===200){
+    console.log(`Este es el numero actual: ${inicio}`);
+    inicio++;
+    if (inicio === 200) {
         bandera = false;
-   } 
+    }
 } while (bandera);
-
-document.getElementById("btninicio").addEventListener("click", function(event){
-    console.log("Diste click en el boton")
-}
