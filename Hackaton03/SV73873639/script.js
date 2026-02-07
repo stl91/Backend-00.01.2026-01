@@ -8,12 +8,13 @@ const IMG_FALLO = "./Images/Exercise Wrong.webp";
 /* --- MOTOR DE VALIDACIÓN Y REINTENTO --- */
 
 /**
+ * Función centralizada para pedir datos con validación estricta y reintentos.
  * @param {string} titulo - Título de la pregunta
- * @param {boolean} permitirNegativo - Bloqueo de negativos
- * @param {boolean} esSoloLetra - Para el ejercicio de vocales
- * @param {boolean} permiteDecimal - Para notas o sueldos
- * @param {number} min - Valor mínimo permitido
- * @param {number} max - Valor máximo permitido
+ * @param {boolean} permitirNegativo - Si acepta números menores a 0
+ * @param {boolean} esSoloLetra - Para validar caracteres únicos (vocales)
+ * @param {boolean} permiteDecimal - Si acepta puntos decimales
+ * @param {number} min - Valor mínimo permitido (opcional)
+ * @param {number} max - Valor máximo permitido (opcional)
  */
 async function pedirDato(titulo, permitirNegativo = true, esSoloLetra = false, permiteDecimal = false, min = null, max = null) {
     let valido = false;
@@ -36,18 +37,19 @@ async function pedirDato(titulo, permitirNegativo = true, esSoloLetra = false, p
         respuesta = res.trim();
 
         if (esSoloLetra) {
+            // Valida que sea solo una letra y nada de símbolos/números
             if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ]$/.test(respuesta)) {
-                await Swal.fire({ title: "Letra Inválida", text: "Solo se permite una letra, sin símbolos.", icon: "warning" });
+                await Swal.fire({ title: "Letra Inválida", text: "Solo se permite una letra, sin símbolos ni números.", icon: "warning" });
                 continue;
             }
         } else {
-            // Regex ajustada: permite decimales si se solicita
+            // Regex: Bloquea símbolos !"#$%&/()=? y letras
             const patron = permiteDecimal ? /^-?\d+(\.\d+)?$/ : /^-?\d+$/;
             
             if (!patron.test(respuesta)) {
                 await Swal.fire({
                     title: "Formato Incorrecto",
-                    html: `El valor "<b>${respuesta}</b>" no es válido.<br>Recuerda: ${permiteDecimal ? 'Puedes usar un punto para decimales.' : 'Solo números enteros.'}<br><b>Prohibido:</b> símbolos como #$%&/()=?`,
+                    html: `El valor "<b>${respuesta}</b>" no es válido.<br><b>Prohibido:</b> símbolos (#$%&), letras o espacios.`,
                     icon: "warning"
                 });
                 continue;
@@ -56,11 +58,11 @@ async function pedirDato(titulo, permitirNegativo = true, esSoloLetra = false, p
             let num = Number(respuesta);
 
             if (!permitirNegativo && num < 0) {
-                await Swal.fire({ title: "Sin Negativos", text: "No se permiten valores menores a cero.", icon: "error" });
+                await Swal.fire({ title: "Sin Negativos", text: "Este ejercicio no admite números menores a cero.", icon: "error" });
                 continue;
             }
 
-            // Validación de Rango (Para el 0-20 de notas)
+            // Validación de Rango (Indispensable para Ej 8, Ej 16, Ej 19, etc.)
             if (min !== null && num < min) {
                 await Swal.fire({ title: "Valor muy bajo", text: `El mínimo permitido es ${min}.`, icon: "error" });
                 continue;
@@ -159,201 +161,284 @@ async function ej08() {
 }
 
 async function ej09() {
-    let s = await pedirDato("Sueldo:", false);
+    // Configuramos: permite decimales (dinero), no permite negativos ni símbolos
+    let s = await pedirDato("Sueldo actual para calcular aumento:", false, false, true); 
     if (!s) return;
-    let a=Number(s)>2000?0.05:0.1;
-    botRespuesta(`Sueldo <b>$${s}</b> con aumento: $${(Number(s)*(1+a)).toFixed(2)}.`);
+
+    let sueldoOriginal = Number(s);
+    let porcentaje, aumento;
+
+    // Lógica: Si gana más de 2000 el aumento es menor, si gana menos es mayor
+    if (sueldoOriginal > 2000) {
+        porcentaje = 0.05; // 5%
+    } else {
+        porcentaje = 0.10; // 10%
+    }
+
+    aumento = sueldoOriginal * porcentaje;
+    let sueldoTotal = sueldoOriginal + aumento;
+
+    botRespuesta(`
+        <b>¡Cálculo de Sueldo Finalizado!</b><br><br>
+        • Tu sueldo base era: <b>$${sueldoOriginal.toFixed(2)}</b><br>
+        • Porcentaje aplicado: <b>${porcentaje * 100}%</b><br>
+        • Dinero extra: <b>$${aumento.toFixed(2)}</b><br><hr>
+        • <b>Nuevo Sueldo: $${sueldoTotal.toFixed(2)}</b><br><br>
+        
+        <b>Explicación:</b> Basado en el dato <b>$${s}</b> que ingresaste, el sistema aplicó un ${porcentaje * 100}% de aumento. 
+        Recuerda que si el sueldo es mayor a $2000 el bono es del 5%, de lo contrario es del 10%.
+    `);
 }
+/* ============================================================
+   BLOQUE: EJERCICIOS 10 AL 40 (CON EXPLICACIONES Y VALIDACIÓN)
+   ============================================================ */
 
 async function ej10() {
     let n = await pedirDato("¿Par o Impar?");
     if (!n) return;
-    botRespuesta(`El <b>${n}</b> es ${Number(n)%2==0?'Par':'Impar'}.`);
+    let esPar = Number(n) % 2 === 0;
+    botRespuesta(`
+        El número <b>${n}</b> es <b>${esPar ? 'PAR' : 'IMPAR'}</b>.<br><br>
+        <b>Explicación:</b> Dividimos tu número <b>${n}</b> entre 2. Como el residuo fue ${Math.abs(Number(n) % 2)}, el sistema determina automáticamente su tipo.
+    `);
 }
 
 async function ej11() {
-    let a=await pedirDato("N1"), b=await pedirDato("N2"), c=await pedirDato("N3");
+    let a = await pedirDato("Primer número:"), b = await pedirDato("Segundo:"), c = await pedirDato("Tercero:");
     if (!a || !b || !c) return;
-    botRespuesta(`De <b>${a}, ${b}, ${c}</b> el mayor es ${Math.max(a,b,c)}.`);
+    let mayor = Math.max(Number(a), Number(b), Number(c));
+    botRespuesta(`
+        Entre <b>${a}, ${b} y ${c}</b>, el mayor es <b>${mayor}</b>.<br><br>
+        <b>Explicación:</b> Comparamos los tres valores que ingresaste y el asistente seleccionó el de mayor magnitud numérica.
+    `);
 }
 
 async function ej12() {
-    let a=await pedirDato("N1"), b=await pedirDato("N2");
+    let a = await pedirDato("Número A:"), b = await pedirDato("Número B:");
     if (!a || !b) return;
-    botRespuesta(`Entre <b>${a} y ${b}</b> el mayor es ${Math.max(a,b)}.`);
+    let mayor = Math.max(Number(a), Number(b));
+    botRespuesta(`
+        El mayor entre <b>${a}</b> y <b>${b}</b> es <b>${mayor}</b>.<br><br>
+        <b>Explicación:</b> Se realizó una comparación binaria simple para determinar cuál de tus dos datos está más lejos del cero en la recta numérica.
+    `);
 }
 
 async function ej13() {
-    let l = await pedirDato("Dime una letra", true, true);
+    let l = await pedirDato("Ingresa una sola letra:", true, true);
     if (!l) return;
-    let r = /^[aeiouáéíóú]$/i.test(l);
-    botRespuesta(`La letra <b>${l}</b> ${r?'es':'no es'} vocal.`);
+    let esVocal = /^[aeiouáéíóú]$/i.test(l);
+    botRespuesta(`
+        La letra <b>"${l}"</b> ${esVocal ? 'es una <b>VOCAL</b>' : 'es una <b>CONSONANTE</b>'}.<br><br>
+        <b>Explicación:</b> El sistema revisó si tu carácter <b>${l}</b> coincidía con el conjunto estándar de vocales (a, e, i, o, u).
+    `);
 }
 
 async function ej14() {
-    let n = await pedirDato("Número (1-10)", false);
+    let n = await pedirDato("Número del 1 al 10:", false);
     if (!n) return;
-    botRespuesta(`El <b>${n}</b> ${[2,3,5,7].includes(Number(n))?'es':'no es'} primo.`);
+    let primos = [2, 3, 5, 7];
+    let esPrimo = primos.includes(Number(n));
+    botRespuesta(`
+        El número <b>${n}</b> ${esPrimo ? 'es <b>PRIMO</b>' : '<b>NO ES PRIMO</b>'}.<br><br>
+        <b>Explicación:</b> En el rango del 1 al 10, solo los números que solo se dividen por sí mismos y por 1 son primos. Tu número <b>${n}</b> fue verificado en esa lista.
+    `);
 }
 
 async function ej15() {
-    let cm=await pedirDato("CM", false), lb=await pedirDato("LB", false);
+    let cm = await pedirDato("Centímetros a Pulgadas:", false, false, true);
+    let lb = await pedirDato("Libras a Kilos:", false, false, true);
     if (!cm || !lb) return;
-    botRespuesta(`<b>${cm} cm</b> = ${(cm/2.54).toFixed(2)} pulg | <b>${lb} lb</b> = ${(lb/2.204).toFixed(2)} kg.`);
+    botRespuesta(`
+        • <b>${cm} cm</b> equivalen a <b>${(cm / 2.54).toFixed(2)} pulg</b>.<br>
+        • <b>${lb} lb</b> equivalen a <b>${(lb / 2.204).toFixed(2)} kg</b>.<br><br>
+        <b>Explicación:</b> Usamos factores de conversión internacionales para transformar tus medidas de <b>${cm}</b> y <b>${lb}</b> al sistema inglés y métrico.
+    `);
 }
 
 async function ej16() {
-    let n = await pedirDato("Día (1-7)", false);
+    let n = await pedirDato("Número del día (1-7):", false);
     if (!n) return;
-    let d=["Lun","Mar","Mie","Jue","Vie","Sab","Dom"];
-    botRespuesta(`El número <b>${n}</b> es ${d[Number(n)-1] || 'inválido'}.`);
+    let dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+    let dia = dias[Number(n) - 1] || "inválido";
+    botRespuesta(`
+        El número <b>${n}</b> representa el día <b>${dia}</b>.<br><br>
+        <b>Explicación:</b> Mapeamos tu número <b>${n}</b> con la posición correspondiente en la semana laboral estándar.
+    `);
 }
 
 async function ej17() {
-    let h=await pedirDato("H", false), m=await pedirDato("M", false), s=await pedirDato("S", false);
-    if (!h || !m || !s) return;
-    let hh=Number(h), mm=Number(m), ss=Number(s);
-    ss++; if(ss==60){ss=0;mm++;} if(mm==60){mm=0;hh++;} if(hh==24)hh=0;
-    botRespuesta(`De <b>${h}:${m}:${s}</b> avanzamos a ${hh}:${mm}:${ss}.`);
+    let h = await pedirDato("Hora (0-23):", false), m = await pedirDato("Minuto (0-59):", false), s = await pedirDato("Segundo (0-59):", false);
+    if (h === null || m === null || s === null) return;
+    let hh = Number(h), mm = Number(m), ss = Number(s);
+    ss++;
+    if (ss === 60) { ss = 0; mm++; }
+    if (mm === 60) { mm = 0; hh++; }
+    if (hh === 24) hh = 0;
+    botRespuesta(`
+        La hora un segundo después de <b>${h}:${m}:${s}</b> es <b>${hh}:${mm}:${ss}</b>.<br><br>
+        <b>Explicación:</b> Incrementamos el tiempo y gestionamos los "acarreados" (cuando los segundos o minutos llegan a 60).
+    `);
 }
 
 async function ej18() {
-    let n = await pedirDato("Cant. CDs", false);
+    let n = await pedirDato("¿Cuántos CDs llevarás?", false);
     if (!n) return;
-    let c=Number(n), p=c<=9?10:c<=99?8:c<=499?7:6;
-    botRespuesta(`Por <b>${c}</b> CDs pagas $${c*p}.`);
+    let c = Number(n), p = c <= 9 ? 10 : c <= 99 ? 8 : c <= 499 ? 7 : 6;
+    botRespuesta(`
+        Total por <b>${c} CDs</b>: <b>$${c * p}</b>.<br><br>
+        <b>Explicación:</b> Según tu cantidad de <b>${n}</b>, el precio unitario bajó a $${p}. A más compra, mayor descuento.
+    `);
 }
 
+/* --- EJERCICIO 19: HELADERÍA (CORREGIDO) --- */
 async function ej19() {
-    let id=await pedirDato("ID (1-4)", false), d=await pedirDato("Días", false);
-    if (!id || !d) return;
-    let t={1:56, 2:64, 3:80, 4:48};
-    botRespuesta(`Empleado <b>${id}</b> por <b>${d}</b> días: $${(t[id]||0)*d}.`);
+    let id = await pedirDato("ID Empleado (1:Cajero, 2:Servidor, 3:Mezclas, 4:Mantenimiento):", false, false, false, 1, 4);
+    if (!id) return;
+
+    let d = await pedirDato("Días trabajados (Máximo 6):", false, false, false, 1, 6);
+    if (!d) return;
+
+    let tarifas = { 1: {t:56, n:"Cajero"}, 2: {t:64, n:"Servidor"}, 3: {t:80, n:"Prep. Mezclas"}, 4: {t:48, n:"Mantenimiento"} };
+    let info = tarifas[Number(id)];
+    let pago = info.t * Number(d);
+
+    botRespuesta(`
+        <b>Pago de Heladería</b><br><hr>
+        • Cargo: <b>${info.n}</b><br>
+        • Días: <b>${d}</b> (de 6 máx.)<br>
+        • Pago Total: <b>$${pago}</b><br><br>
+        <b>Explicación:</b> Para el ID <b>${id}</b>, la tarifa es $${info.t}/día. Por <b>${d}</b> días, el total es $${pago}.
+    `);
 }
 
 async function ej20() {
-    let a=await pedirDato("N1"), b=await pedirDato("N2"), c=await pedirDato("N3"), d=await pedirDato("N4");
-    if (!a||!b||!c||!d) return;
-    let l=[Number(a),Number(b),Number(c),Number(d)];
-    botRespuesta(`Mayor: ${Math.max(...l)}, Pares: ${l.filter(x=>x%2==0).length}. Basado en <b>${a},${b},${c},${d}</b>.`);
+    // Pedimos los 4 números usando pedirDato para asegurar que no entren símbolos ni letras
+    let n1 = await pedirDato("Primer número (N1):");
+    if (n1 === null) return;
+    
+    let n2 = await pedirDato("Segundo número (N2):");
+    if (n2 === null) return;
+    
+    let n3 = await pedirDato("Tercero número (N3):");
+    if (n3 === null) return;
+    
+    let n4 = await pedirDato("Cuarto número (N4):");
+    if (n4 === null) return;
+
+    // Convertimos a números para operar
+    let num1 = Number(n1);
+    let num2 = Number(n2);
+    let num3 = Number(n3);
+    let num4 = Number(n4);
+
+    // 1. Encontrar el mayor
+    let mayor = Math.max(num1, num2, num3, num4);
+
+    // 2. Contar cuántos son pares
+    let lista = [num1, num2, num3, num4];
+    let pares = lista.filter(x => x % 2 === 0).length;
+
+    // 3. Mostrar resultado con explicación
+    botRespuesta(`
+        <b>Análisis de Datos Finalizado</b><hr>
+        • Números ingresados: <b>${n1}, ${n2}, ${n3}, ${n4}</b><br>
+        • El número mayor es: <b>${mayor}</b><br>
+        • Cantidad de números pares: <b>${pares}</b><br><br>
+        
+        <b>Explicación:</b> El sistema analizó tus cuatro entradas. 
+        Primero, comparó los valores para identificar que <b>${mayor}</b> es el más alto. 
+        Luego, aplicó el operador de residuo (modulo 2) a cada uno, detectando que <b>${pares}</b> de ellos tienen división exacta por dos.
+    `);
 }
 
 async function ej21() {
-    let n = await pedirDato("Factorial", false);
+    let n = await pedirDato("Número para Factorial:", false);
     if (!n) return;
-    let r=1; for(let i=1;i<=Number(n);i++) r*=i;
-    botRespuesta(`El factorial de <b>${n}</b> es ${r}.`);
+    let res = 1;
+    for (let i = 1; i <= Number(n); i++) res *= i;
+    botRespuesta(`
+        El factorial de <b>${n}</b> (<b>${n}!</b>) es <b>${res}</b>.<br><br>
+        <b>Explicación:</b> Multiplicamos 1 × 2 × 3... hasta llegar a tu número <b>${n}</b>.
+    `);
 }
 
 async function ej22() {
-    let n = await pedirDato("Sumar hasta", false);
+    let n = await pedirDato("Sumar del 1 hasta:", false);
     if (!n) return;
-    botRespuesta(`Suma del 1 al <b>${n}</b> es ${(Number(n)*(Number(n)+1))/2}.`);
-}
-
-async function ej23() {
-    let n = await pedirDato("Límite impares", false);
-    if (!n) return;
-    let s=0; for(let i=1;i<=Number(n);i+=2) s+=i;
-    botRespuesta(`Suma impares hasta <b>${n}</b> es ${s}.`);
-}
-
-async function ej24() {
-    let s=0; for(let i=2;i<=1000;i+=2) s+=i;
-    botRespuesta(`Suma de pares hasta el 1000 es <b>${s}</b>.`);
-}
-
-async function ej25() {
-    let n = await pedirDato("Factorial", false);
-    if (!n) return;
-    let f=1, i=Number(n); while(i>0){f*=i;i--;}
-    botRespuesta(`Factorial de <b>${n}</b> es ${f}.`);
+    let suma = (Number(n) * (Number(n) + 1)) / 2;
+    botRespuesta(`
+        La suma acumulada hasta <b>${n}</b> es <b>${suma}</b>.<br><br>
+        <b>Explicación:</b> Aplicamos la fórmula de Gauss sobre tu número <b>${n}</b> para obtener el total instantáneamente.
+    `);
 }
 
 async function ej26() {
-    let D=await pedirDato("Dividendo", false), d=await pedirDato("Divisor", false);
+    let D = await pedirDato("Dividendo:", false), d = await pedirDato("Divisor:", false);
     if (!D || !d) return;
-    if (Number(d)==0) return botRespuesta("No divisible por cero", false);
-    let c=0, r=Number(D); while(r>=Number(d)){r-=Number(d); c++;}
-    botRespuesta(`<b>${D}/${d}</b>: Cociente ${c}, Resto ${r}.`);
-}
-
-async function ej27() {
-    let sum=0, cont=0;
-    await Swal.fire("Media", "Números positivos. Símbolos o negativos detienen.", "info");
-    while(true){
-        let v = await pedirDato("Dato (o cancela para terminar)");
-        if (!v || Number(v)<0) break;
-        sum+=Number(v); cont++;
-    }
-    botRespuesta(`Media: <b>${cont>0?sum/cont:0}</b>.`);
-}
-
-async function ej28() { let s=0, i=1; do{s+=i; i++;}while(i<=100); botRespuesta(`Suma 1-100: ${s}`); }
-async function ej29() { let s=0, i=1; while(i<=100){s+=i; i++;} botRespuesta(`Suma 1-100: ${s}`); }
-async function ej30() { let s=0; for(let i=1;i<=100;i++) s+=i; botRespuesta(`Suma 1-100: ${s}`); }
-
-async function ej31() {
-    let p=0, im=0; for(let i=0;i<10;i++){
-        let v=Math.floor(Math.random()*100);
-        if(v%2==0) p+=v; else im+=v;
-    }
-    botRespuesta(`Aleatorios: Pares ${p}, Impares ${im}.`);
-}
-
-async function ej32() {
-    let m=0, id=0; for(let i=1;i<=3;i++){
-        let v=Math.floor(Math.random()*100000);
-        if(v>m){m=v; id=i;}
-    }
-    botRespuesta(`Provincia <b>${id}</b> es mayor con ${m} hab.`);
-}
-
-async function ej33() {
-    for(let i=3;i<=100;i+=3) console.log(i);
-    botRespuesta("Múltiplos de 3 en consola.");
+    if (Number(d) === 0) return botRespuesta("No se puede dividir entre cero.", false);
+    let cociente = 0, resto = Number(D);
+    while (resto >= Number(d)) { resto -= Number(d); cociente++; }
+    botRespuesta(`
+        Resultado de <b>${D} ÷ ${d}</b>: Cociente <b>${cociente}</b>, Resto <b>${resto}</b>.<br><br>
+        <b>Explicación:</b> Restamos <b>${d}</b> sucesivamente del <b>${D}</b> hasta que ya no fue posible.
+    `);
 }
 
 async function ej34() {
-    let n = await pedirDato("Tabla de", false);
+    let n = await pedirDato("Tabla de multiplicar del:", false);
     if (!n) return;
-    let t=""; for(let i=1;i<=10;i++) t+=`${n}x${i}=${Number(n)*i}<br>`;
-    botRespuesta(`<b>Tabla del ${n}:</b><br>${t}`);
-}
-
-async function ej35() {
-    let l=[]; for(let i=0;i<20;i++) l.push(Math.floor(Math.random()*100));
-    botRespuesta(`20 Números: Mayor ${Math.max(...l)}, Menor ${Math.min(...l)}.`);
+    let tabla = "";
+    for (let i = 1; i <= 10; i++) tabla += `<b>${n}</b> x ${i} = ${Number(n) * i}<br>`;
+    botRespuesta(`
+        <b>Tabla del ${n}:</b><br>${tabla}<br>
+        <b>Explicación:</b> Calculamos los primeros 10 múltiplos de tu número <b>${n}</b>.
+    `);
 }
 
 async function ej36() {
-    let n = await pedirDato("Cant. Fibonacci", false);
+    let n = await pedirDato("¿Cuántos números de Fibonacci quieres?", false);
     if (!n) return;
-    let c=Number(n), f=[0,1]; for(let i=2;i<c;i++) f.push(f[i-1]+f[i-2]);
-    botRespuesta(`Serie de <b>${n}</b>: ${f.slice(0,c).join(', ')}.`);
+    let cant = Number(n), f = [0, 1];
+    if (cant === 1) f = [0];
+    for (let i = 2; i < cant; i++) f.push(f[i - 1] + f[i - 2]);
+    botRespuesta(`
+        <b>Serie Fibonacci (${n} términos):</b><br>${f.slice(0, cant).join(', ')}<br><br>
+        <b>Explicación:</b> Generamos una cadena donde cada nuevo número es la suma de los dos anteriores, empezando desde tus <b>${n}</b> pedidos.
+    `);
 }
 
 async function ej37() {
-    let a=await pedirDato("N1"), b=await pedirDato("N2");
+    let a = await pedirDato("Número 1 para MCD:"), b = await pedirDato("Número 2:");
     if (!a || !b) return;
-    let n1=Math.abs(a), n2=Math.abs(b);
-    while(n2!=0){let t=n2; n2=n1%n2; n1=t;}
-    botRespuesta(`MCD de <b>${a} y ${b}</b> es <b>${n1}</b>.`);
+    let n1 = Math.abs(Number(a)), n2 = Math.abs(Number(b));
+    while (n2 !== 0) { let t = n2; n2 = n1 % n2; n1 = t; }
+    botRespuesta(`
+        El Máximo Común Divisor de <b>${a} y ${b}</b> es <b>${n1}</b>.<br><br>
+        <b>Explicación:</b> Usamos el Algoritmo de Euclides para encontrar el número más grande que divide exactamente a tus datos <b>${a}</b> y <b>${b}</b>.
+    `);
 }
 
 async function ej38() {
-    let n = await pedirDato("Número perfecto", false);
+    let n = await pedirDato("Verificar si es número perfecto:", false);
     if (!n) return;
-    let v=Number(n), s=0; for(let i=1;i<v;i++) if(v%i==0) s+=i;
-    botRespuesta(`El <b>${n}</b> ${s==v?'es':'no es'} perfecto.`);
-}
-
-async function ej39() {
-    let pi=0, d=1, s=1; for(let i=0;i<10000;i++){pi+=s*(4/d); d+=2; s*=-1;}
-    botRespuesta(`Pi estimado: <b>${pi.toFixed(6)}</b>.`);
+    let num = Number(n), suma = 0, divisores = [];
+    for (let i = 1; i < num; i++) { if (num % i === 0) { suma += i; divisores.push(i); } }
+    let esP = (suma === num && num !== 0);
+    botRespuesta(`
+        ¿Es <b>${n}</b> perfecto? <b>${esP ? 'SÍ' : 'NO'}</b>.<br>
+        Suma de divisores: ${divisores.join(' + ')} = <b>${suma}</b>.<br><br>
+        <b>Explicación:</b> Un número es perfecto si la suma de sus divisores (sin incluirse él mismo) da el número original. En tu caso <b>${n}</b>, la suma dio ${suma}.
+    `);
 }
 
 async function ej40() {
-    let pi=3, d=2, s=1; for(let i=0;i<1000;i++){pi+=s*(4/(d*(d+1)*(d+2))); d+=2; s*=-1;}
-    botRespuesta(`Pi Nilakantha: <b>${pi.toFixed(6)}</b>.`);
+    let pi = 3, d = 2, s = 1;
+    for (let i = 0; i < 500; i++) {
+        pi += s * (4 / (d * (d + 1) * (d + 2)));
+        d += 2; s *= -1;
+    }
+    botRespuesta(`
+        <b>Pi (Nilakantha) ≈ ${pi.toFixed(10)}</b>.<br><br>
+        <b>Explicación:</b> A diferencia de Leibniz, esta serie converge mucho más rápido. Es una danza matemática de sumas y restas de fracciones de productos triples.
+    `);
 }
